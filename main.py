@@ -1,25 +1,31 @@
-from transformers import AutoModel, AutoTokenizer
-
-def load_model(model_name: str):
-    """
-    Загрузка модели и токенизатора с Hugging Face.
-
-    :param model_name: Название модели на Hugging Face (например, 'bert-base-uncased').
-    :return: Кортеж (модель, токенизатор)
-    """
-    try:
-        # Загрузка токенизатора
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        # Загрузка модели
-        model = AutoModel.from_pretrained(model_name)
-        print(f"Модель '{model_name}' успешно загружена!")
-        return model, tokenizer
-    except Exception as e:
-        print(f"Ошибка при загрузке модели '{model_name}': {e}")
-        return None, None
+import list_models
+import download_model
+import argparse
 
 
-# Пример использования
-if __name__ == "__main__":
-    model_name = "papluca/xlm-roberta-base-language-detection"  # Укажите нужное имя модели
-    model, tokenizer = load_model(model_name)
+
+def main():
+    # Create the argument parser
+    parser = argparse.ArgumentParser(description='Model management utility.')
+
+    # Create a mutually exclusive group for the arguments
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    # Add --list-models argument
+    group.add_argument('--list-models', action='store_true', help='List all available models.')
+
+    # Add --get-model argument
+    group.add_argument('--get-model', metavar='NAME', help='Get details of a specific model.')
+
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Call the appropriate function based on the arguments
+    if args.list_models:
+        list_models.list_models()
+    elif args.get_model:
+        download_model.download_model(args.get_model)
+
+
+if __name__ == '__main__':
+    main()
