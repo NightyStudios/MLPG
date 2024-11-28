@@ -1,31 +1,54 @@
-import list_models
-import download_model
-import argparse
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
+from kivy.uix.label import Label
+from kivy.uix.recycleview import RecycleView
 
 
+class AIModelApp(App):
 
-def main():
-    # Create the argument parser
-    parser = argparse.ArgumentParser(description='Model management utility.')
+    def build(self):
+        # Main layout of the app
+        main_layout = BoxLayout(orientation='horizontal')
 
-    # Create a mutually exclusive group for the arguments
-    group = parser.add_mutually_exclusive_group(required=True)
+        # Sidebar layout
+        sidebar = BoxLayout(orientation='vertical', size_hint=(0.3, 1))
+        sidebar.add_widget(Button(text='Models', size_hint_y=None, height=50, on_press=self.toggle_sidebar))
 
-    # Add --list-models argument
-    group.add_argument('--list-models', action='store_true', help='List all available models.')
+        # RecycleView for models list
+        self.models_list = RecycleView(size_hint=(1, None), height=150)
+        self.models_list.data = [{'text': f'Model {i}'} for i in range(1, 4)]
 
-    # Add --get-model argument
-    group.add_argument('--get-model', metavar='NAME', help='Get details of a specific model.')
+        # Sidebar with RecycleView
+        sidebar.add_widget(self.models_list)
 
-    # Parse the arguments
-    args = parser.parse_args()
+        # Main content layout
+        main_content = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
+        main_content.add_widget(Label(text='WELCOME', font_size='32sp', size_hint_y=None, height=50))
 
-    # Call the appropriate function based on the arguments
-    if args.list_models:
-        list_models.list_models()
-    elif args.get_model:
-        download_model.download_model(args.get_model)
+        # Search bar
+        search_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
+        search_input = TextInput(hint_text='Search models...', size_hint_x=0.8)
+        download_button = Button(text='Download', size_hint_x=0.2)
+        search_layout.add_widget(search_input)
+        search_layout.add_widget(download_button)
+
+        main_content.add_widget(search_layout)
+
+        # Add the sidebar and main content to the main layout
+        main_layout.add_widget(sidebar)
+        main_layout.add_widget(main_content)
+
+        return main_layout
+
+    def toggle_sidebar(self, instance):
+        # Toggle the sidebar open/closed
+        if self.models_list.height == 0:
+            self.models_list.height = 150
+        else:
+            self.models_list.height = 0
 
 
 if __name__ == '__main__':
-    main()
+    AIModelApp().run()
