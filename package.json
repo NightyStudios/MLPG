@@ -1,0 +1,14 @@
+{
+  "name": "mlpg",
+  "version": "1.0.0",
+  "description": "This is a Front part of Machine Learning Playground",
+  "main": "main.js",
+  "scripts": {
+  "start": "electron ."
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.2.1"
+  }
+}

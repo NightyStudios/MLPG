@@ -15,7 +15,3 @@ def list_models():
                 model_name = parts[2]
                 models.append(f"{author}/{model_name}")
     return models
-
-if __name__ == "__main__":
-    models = list_models()
-    print(json.dumps(models))
