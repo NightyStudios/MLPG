@@ -4,49 +4,84 @@ const { exec } = require('child_process');
 
 let mainWindow;
 
-// Ð¤ÑƒÐ½ÐºÑ†Ð¸Ñ Ð´Ð»Ñ Ð²Ñ‹Ð·Ð¾Ð²Ð° Python-ÑÐºÑ€Ð¸Ð¿Ñ‚Ð°
+// Ôóíêöèÿ ïîëó÷åíèÿ ñïèñêà ìîäåëåé
 function fetchModels(callback) {
-  const pythonScriptPath = path.join(__dirname, 'list_models.py');
-
-  exec(`python "${pythonScriptPath}"`, (error, stdout, stderr) => {
+  exec('mlpg list', (error, stdout, stderr) => {
     if (error) {
-      console.error(`ÐžÑˆÐ¸Ð±ÐºÐ° Ð²Ñ‹Ð¿Ð¾Ð»Ð½ÐµÐ½Ð¸Ñ Python-ÑÐºÑ€Ð¸Ð¿Ñ‚Ð°: ${error.message}`);
+      console.error(`Error executing mlpg list: ${error.message}`);
       callback([]);
       return;
     }
     if (stderr) {
-      console.error(`ÐžÑˆÐ¸Ð±ÐºÐ° Ð² Python-ÑÐºÑ€Ð¸Ð¿Ñ‚Ðµ: ${stderr}`);
+      console.warn(`Warning: ${stderr}`);
     }
 
-    try {
-      const models = JSON.parse(stdout); // ÐŸÐ°Ñ€ÑÐ¸Ð¼ JSON
-      callback(models);
-    } catch (err) {
-      console.error('ÐžÑˆÐ¸Ð±ÐºÐ° Ð¿Ð°Ñ€ÑÐ¸Ð½Ð³Ð° JSON:', err.message);
-      callback([]);
-    }
+    const models = stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(
+        (line) =>
+          line !== '' &&
+          line !== 'Hugging Face rules the world :3' &&
+          line !== '------------------------------'
+      );
+    callback(models);
   });
 }
 
-app.on('ready', () => {
-  mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'), // Ð¡ÑÑ‹Ð»ÐºÐ° Ð½Ð° Ð½Ð¾Ð²Ñ‹Ð¹ preload.js
-    },
-  });
-
-  mainWindow.loadFile('index.html');
-});
-
-// IPC-Ð¾Ð±Ñ€Ð°Ð±Ð¾Ñ‚Ñ‡Ð¸Ðº Ð´Ð»Ñ Ð¿ÐµÑ€ÐµÐ´Ð°Ñ‡Ð¸ Ð´Ð°Ð½Ð½Ñ‹Ñ…
+// IPC-îáðàáîò÷èê äëÿ ïîëó÷åíèÿ ñïèñêà ìîäåëåé
 ipcMain.handle('fetch-models', async () => {
   return new Promise((resolve) => {
     fetchModels((models) => {
       resolve(models);
     });
   });
+});
+
+// IPC-îáðàáîò÷èê äëÿ ñêà÷èâàíèÿ ìîäåëè
+ipcMain.handle('download-model', async (event, modelName) => {
+  return new Promise((resolve) => {
+    exec(`mlpg install ${modelName}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error downloading model: ${error.message}`);
+        resolve(false);
+        return;
+      }
+      if (stderr) {
+        console.warn(`Warning: ${stderr}`);
+      }
+      resolve(true);
+    });
+  });
+});
+
+// IPC-îáðàáîò÷èê äëÿ óäàëåíèÿ ìîäåëè
+ipcMain.handle('delete-model', async (event, modelName) => {
+  return new Promise((resolve) => {
+    exec(`mlpg delete ${modelName}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error deleting model: ${error.message}`);
+        resolve(false);
+        return;
+      }
+      if (stderr) {
+        console.warn(`Warning: ${stderr}`);
+      }
+      resolve(true);
+    });
+  });
+});
+
+app.on('ready', () => {
+  mainWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+
+  mainWindow.loadFile('index.html');
 });
 
 app.on('window-all-closed', () => {

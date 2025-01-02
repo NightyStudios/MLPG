@@ -23,11 +23,23 @@ header {
   width: 100%;
   background-color: #282828;
   padding: 20px 0;
-  position: absolute;
-  top: 0;
+  position: fixed; /* ��������� ������ */
+  top: auto; /* ������� �������� � ����� */
+  bottom: 0; /* ����������� � � ���� */
   left: 0;
   z-index: 10;
-  animation: slideDown 0.5s ease-out;
+  animation: slideUp 0.5s ease-out; /* ��������� �������� */
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .search-bar {
@@ -36,7 +48,7 @@ header {
   align-items: center;
   background-color: #f1f1f1;
   padding: 10px 20px;
-  border-radius: 12px; /* Уменьшено скругление */
+  border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
   width: 70%;
@@ -49,8 +61,8 @@ header {
   outline: none;
   padding: 12px 20px;
   margin-right: 10px;
-  border-radius: 10px; /* Уменьшено скругление */
-  width: calc(100% - 120px); /* Чтобы кнопка и поле были одинаковой ширины */
+  border-radius: 10px;
+  width: calc(100% - 120px);
   font-size: 1.1rem;
   transition: width 0.3s ease;
 }
@@ -60,10 +72,10 @@ header {
   color: white;
   border: none;
   padding: 12px 20px;
-  border-radius: 10px; /* Уменьшено скругление */
+  border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.3s ease;
-  width: 100px; /* Фиксированная ширина кнопки */
+  width: 100px;
   animation: fadeInButton 1s ease-out;
 }
 
@@ -80,7 +92,7 @@ header {
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  margin-top: 120px; /* Create space for header */
+  margin-top: 120px;
   animation: fadeInAppContainer 1s ease-out;
 }
 
@@ -109,7 +121,7 @@ header {
   text-align: left;
   font-weight: bold;
   transition: background-color 0.3s ease;
-  border-radius: 12px; /* Уменьшено скругление */
+  border-radius: 12px;
 }
 
 .model-button:hover {
@@ -130,7 +142,7 @@ header {
   text-align: left;
   transition: background-color 0.3s ease, transform 0.3s ease;
   cursor: pointer;
-  border-radius: 12px; /* Уменьшено скругление */
+  border-radius: 12px;
 }
 
 .models-list li:hover {
@@ -161,6 +173,46 @@ h1 {
   margin-bottom: 40px;
   opacity: 0;
   animation: fadeInText 1s ease-out forwards;
+}
+
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h2 {
+  margin-bottom: 20px;
+}
+
+.modal-content button {
+  margin: 5px;
+  padding: 10px 20px;
+  cursor: pointer;
+  border: none;
+  background: #007bff;
+  color: white;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.modal-content button:hover {
+  background: #0056b3;
 }
 
 /* Animations */

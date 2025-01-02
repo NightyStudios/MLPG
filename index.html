@@ -9,7 +9,7 @@
 <body>
   <header>
     <div class="search-bar">
-      <input type="text" placeholder="Search models...">
+      <input type="text" placeholder="Enter model name">
       <button>Download</button>
     </div>
   </header>
@@ -17,15 +17,19 @@
   <div class="app-container">
     <aside class="sidebar">
       <button class="model-button">Models</button>
-      <ul class="models-list">
-        <li>Model 1</li>
-        <li>Model 2</li>
-        <li>Model 3</li>
-      </ul>
+      <ul class="models-list"></ul>
     </aside>
     <main class="main-content">
       <h1>WELCOME</h1>
     </main>
+  </div>
+
+  <div class="modal">
+    <div class="modal-content">
+      <h2>Actions for <span class="modal-model-name"></span></h2>
+      <button class="delete-button">Delete</button>
+      <button class="close-button" onclick="document.querySelector('.modal').style.display='none'">Close</button>
+    </div>
   </div>
 
   <script src="index.js"></script>
