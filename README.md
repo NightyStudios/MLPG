@@ -16,9 +16,9 @@ MLPG comes into two different forms: Desktop app (UI) and CLI.
 2. Install required dependencies (virtual environment is _recommended_)
 `pip install -r requirements.txt`
 ### Use UI to launch MLPG
-> `python ui_test.py`
+`python ui_test.py`
 ### Use CLI to launch MLPG
 * Windows
-> `mlpg -h`
+`mlpg -h`
 * Linux/MacOS
-> `mlpg.py -h`
+`mlpg.py -h`
