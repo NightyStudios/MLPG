@@ -1,79 +1,32 @@
-#from kivy.app import App
-#from kivy.uix.boxlayout import BoxLayout
-#from kivy.uix.button import Button
-#from kivy.uix.textinput import TextInput
-#from kivy.uix.label import Label
-#from kivy.uix.recycleview import RecycleView
-
-
-#class AIModelApp(App):
-
-    #def build(self):
-        ## Main layout of the app
-        #main_layout = BoxLayout(orientation='horizontal')
-
-        ## Sidebar layout
-        #sidebar = BoxLayout(orientation='vertical', size_hint=(0.3, 1))
-        #sidebar.add_widget(Button(text='Models', size_hint_y=None, height=50, on_press=self.toggle_sidebar))
-
-        ## RecycleView for models list
-        #self.models_list = RecycleView(size_hint=(1, None), height=150)
-        #self.models_list.data = [{'text': f'Model {i}'} for i in range(1, 4)]
-
-        ## Sidebar with RecycleView
-        #sidebar.add_widget(self.models_list)
-
-        ## Main content layout
-        #main_content = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
-        #main_content.add_widget(Label(text='WELCOME', font_size='32sp', size_hint_y=None, height=50))
-
-        ## Search bar
-        #search_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
-        #search_input = TextInput(hint_text='Search models...', size_hint_x=0.8)
-        #download_button = Button(text='Download', size_hint_x=0.2)
-        #search_layout.add_widget(search_input)
-        #search_layout.add_widget(download_button)
-
-        #main_content.add_widget(search_layout)
-
-        ## Add the sidebar and main content to the main layout
-        #main_layout.add_widget(sidebar)
-        #main_layout.add_widget(main_content)
-
-        #return main_layout
-
-    #def toggle_sidebar(self, instance):
-        ## Toggle the sidebar open/closed
-        #if self.models_list.height == 0:
-            #self.models_list.height = 150
-        #else:
-            #self.models_list.height = 0
-
-
-#if __name__ == '__main__':
-    #AIModelApp().run()
-
-
-
-
-from transformers import pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 import os
 import list_models
 
-def use_model(model_name, msg):
+
+def use_model(model_name, msg, temp, topp, topk, c_size, rep_penalty, am):
     ai_class = 'None'
     pth = 'None'
     username = os.environ["USERNAME"]
     save_dir = os.path.join('C:\\Users', username, '.cache\\huggingface\\hub')
-    
-    models = list_models.list_models()
-    for model in models:
-        if model['model_id'] == model_name:
-            ai_class = model['task']
-            pth = model['path']
-    
-    out = pipeline(ai_class, model=pth, tokenizer=pth)
-    
-    result = out(msg)
 
-    return result
+    models = list_models.list_models()
+    for each in models:
+        if each['model_id'] == model_name:
+            ai_class = each['task']
+            pth = each['path']
+
+    if am:
+
+        model = AutoModelForCausalLM.from_pretrained(pth, torch_dtype="auto", is_decoder=True).to("cuda")
+        tokenizer = AutoTokenizer.from_pretrained(pth)
+
+        input_ids = tokenizer(msg, return_tensors="pt").input_ids.to("cuda")
+        vixlop = model.generate(input_ids, max_length=c_size, temperature=temp, top_k=topk, top_p=topp, repetition_penalty=rep_penalty, do_sample=True)
+        output = tokenizer.decode(vixlop[0], skip_special_tokens=True)
+
+    else:
+
+        generator = pipeline(ai_class, model=pth, tokenizer=pth, device=0)
+        output = generator(msg)
+
+    return output

@@ -1,3 +1,4 @@
 customtkinter
 huggingface_hub
 transformers
+torch==2.6.0+cu126 --index-url https://download.pytorch.org/whl/cu126
