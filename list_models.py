@@ -10,6 +10,7 @@ ARCH_TO_TASK: Dict[str, str] = {
     "ForCausalLM": "text-generation",
     "ForMaskedLM": "fill-mask",
     "ForConditionalGeneration": "text2text-generation",
+    "MarianMTModel": "translation",
 }
 
 def get_model_task(model_path):

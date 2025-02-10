@@ -6,6 +6,122 @@ from download_model import download_model
 from use_model import use_model
 from del_model import del_model
 import tkinter.messagebox as MessageBox
+from PIL import Image
+
+
+def show_tutorial():
+    tutorial_window = ctk.CTkToplevel(app)
+    tutorial_window.title("Обучение")
+    tutorial_window.geometry("1200x900")
+    tutorial_window.resizable(False, False)
+    tutorial_window.transient(app)
+    tutorial_window.grab_set()
+    app.attributes("-alpha", 1.0)
+
+    def on_close():
+        app.attributes("-alpha", 1.0)
+        tutorial_window.grab_release()
+        tutorial_window.destroy()
+
+    tutorial_window.protocol("WM_DELETE_WINDOW", on_close)
+
+    tutorial_steps = [
+        {
+            "text": "Добро пожаловать в MLPG - песочницу для моделей ИИ! \n В этой инструкции вы узнаете, как пользоваться приложением и использовать ИИ на всю мощь!",
+            "image": "logo.png"},
+        {
+            "text": "В верхней поисковой строке вы можете ввести название модели в формате автор/имя и программа скачает её с Hugging Face, например openai-community/gpt2",
+            "image": "download.png"},
+        {"text": "Загруженные модели отображаются в списке слева", "image": "list.png"},
+        {
+            "text": "Чтобы использовать модель, выберите её из списка. Ее характеристики (имя, тип и автор) отобразятся на основном экране (1). \n В текстовом поле (2) введите запрос для модели и нажмите на кнопку отправки (3) \n Результат отобразится в поле ниже (4)",
+            "image": "basic.png"},
+        {
+            "text": "Для использования продвинутых настроек нужно включить флажок (1) и настроить параметры (2) \n Затем, как в предыдущем пункте, нажать кнопку (3)",
+            "image": "advanced.png"},
+        {
+            "text": "Температура (temperature) —  параметр, который контролирует степень случайности в ответах модели. Низкая температура делает ответы более предсказуемыми и уверенными, в то время как высокая температура увеличивает их вариативность",
+            "image": "temp.png"},
+        {
+            "text": "Top-k (первые k) - параметр, который выбирает k первых из списка наиболее вероятных слов. Как и в случае с температурой, top-k увеличивает разнообразие ответов",
+            "image": "top-k.png"},
+        {
+            "text": "Top-p (nucleus sampling, выборка по ядру) смотрит, чтобы сумма вероятностей слов была не более, чем p. Проще говоря, чем больше p, тем больше 'активный словарный запас модели'",
+            "image": "top-p.png"},
+        {
+            "text": "Наказание за повтор (repetition penalty) говорит само за себя - чем больше параметр, тем меньше модель повторяется",
+            "image": "rep.png"},
+        {"text": "Кол-во токенов [максимальное] регулирует насколько длинным будет выход модели", "image": "lengh.png"},
+        {
+            "text": "В целях оптимизации дискового пространства (или потому что ИИ вас рассердил :), вы можете удалить используемую модель",
+            "image": "del.png"},
+        {"text": "Теперь вы знаете, все, что нужно для старта! Желаем успехов и приятного пользования!",
+         "image": "logo.png"},
+    ]
+    tutorial_window.tutorial_steps = tutorial_steps
+    tutorial_window.current_step = 0
+
+    tutorial_image_label = ctk.CTkLabel(tutorial_window, text="")
+    tutorial_image_label.pack(pady=10)
+
+    tutorial_text_label = ctk.CTkLabel(tutorial_window, text="", wraplength=1100, font=('Arial', 25))
+    tutorial_text_label.pack(pady=5)
+
+    button_frame = ctk.CTkFrame(tutorial_window)
+    button_frame.pack(side="bottom", fill="x", pady=10)
+
+    button_frame.grid_columnconfigure(0, weight=1)
+    button_frame.grid_columnconfigure(1, weight=1)
+    button_frame.grid_columnconfigure(2, weight=1)
+
+    tutorial_prev_button = ctk.CTkButton(button_frame, text="<--",
+                                         command=lambda: tutorial_prev_step(tutorial_window, tutorial_image_label,
+                                                                            tutorial_text_label, tutorial_prev_button,
+                                                                            tutorial_next_button), state="disabled",
+                                         font=('Arial', 30))
+    tutorial_prev_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+    tutorial_close_button = ctk.CTkButton(button_frame, text="Закрыть", command=on_close, font=('Arial', 30))
+    tutorial_close_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+    tutorial_next_button = ctk.CTkButton(button_frame, text="-->",
+                                         command=lambda: tutorial_next_step(tutorial_window, tutorial_image_label,
+                                                                            tutorial_text_label, tutorial_prev_button,
+                                                                            tutorial_next_button), font=('Arial', 30))
+    tutorial_next_button.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+    update_tutorial_step(tutorial_window, tutorial_image_label, tutorial_text_label, tutorial_prev_button,
+                         tutorial_next_button)
+
+
+def update_tutorial_step(tutorial_window, tutorial_image_label, tutorial_text_label, tutorial_prev_button,
+                         tutorial_next_button):
+    step = tutorial_window.tutorial_steps[tutorial_window.current_step]
+    tutorial_text_label.configure(text=step["text"])
+    image = ctk.CTkImage(light_image=Image.open(step["image"]), size=(1000, 600))
+    tutorial_image_label.configure(image=image)
+    tutorial_image_label.image = image
+    tutorial_prev_button.configure(state="normal" if tutorial_window.current_step > 0 else "disabled")
+    tutorial_next_button.configure(
+        text="Готово" if tutorial_window.current_step == len(tutorial_window.tutorial_steps) - 1 else "→")
+
+
+def tutorial_next_step(tutorial_window, tutorial_image_label, tutorial_text_label, tutorial_prev_button,
+                       tutorial_next_button):
+    if tutorial_window.current_step < len(tutorial_window.tutorial_steps) - 1:
+        tutorial_window.current_step += 1
+        update_tutorial_step(tutorial_window, tutorial_image_label, tutorial_text_label, tutorial_prev_button,
+                             tutorial_next_button)
+    else:
+        app.attributes("-alpha", 1.0)
+        tutorial_window.grab_release()
+        tutorial_window.destroy()
+
+
+def tutorial_prev_step(tutorial_window, tutorial_image_label, tutorial_text_label, tutorial_prev_button,
+                       tutorial_next_button):
+    if tutorial_window.current_step > 0:
+        tutorial_window.current_step -= 1
+        update_tutorial_step(tutorial_window, tutorial_image_label, tutorial_text_label, tutorial_prev_button,
+                             tutorial_next_button)
+
 
 app = ctk.CTk()
 app.geometry("1920x1080")
@@ -13,6 +129,8 @@ app.title("MLPG")
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
+
+show_tutorial()
 
 
 def update_model_list():
@@ -25,12 +143,12 @@ def update_model_list():
     app.after(1000, update_model_list)
 
 
-def select_model(event):
+def select_model(event  ):
     selected = model_listbox.get(model_listbox.curselection())
     for model in models:
         if model["model_id"] == selected:
             author, model_name = model["model_id"].split("/")
-            task = model.get("task", "Unknown")
+            task = model.get("task", "Неизвестно")
             model_name_label.configure(text=model_name.upper())
             model_type_label.configure(text=task)
             model_author_label.configure(text=author)
@@ -57,7 +175,7 @@ def send_prompt():
             "am": bool(am_entry.get()) if am_entry.get() else False,
         }
     except ValueError:
-        MessageBox.showerror("that's an error!", "please check specified parameters")
+        MessageBox.showerror("возникла ошибка!", "пожалуйста, проверь указанные параметры")
         return
 
     if prompt and model_name:
@@ -71,7 +189,7 @@ def delete_selected_model():
     if model_name:
         del_model(model_name)
         update_model_list()
-        MessageBox.showinfo(title="delete model", message=f"model {model_name} has been succesfully deleted!")
+        MessageBox.showinfo(title="удаление", message=f"модель {model_name} удалена без происшествий!")
 
 
 def toggle_advanced_mode():
@@ -91,7 +209,6 @@ def toggle_advanced_mode():
         max_length_label.grid(row=5, column=0, padx=5, pady=5)
         max_length_entry.grid(row=5, column=1, padx=5, pady=5)
 
-        # Set default values
         temp_entry.delete(0, "end")
         temp_entry.insert(0, "1.0")
 
@@ -124,63 +241,65 @@ def toggle_advanced_mode():
         max_length_entry.grid_forget()
 
 
-model_listbox = tk.Listbox(app, width=30, font=("Arial", 14))
+model_listbox = tk.Listbox(app, width=30, font=("Arial", 25))
 model_listbox.pack(side="left", fill="y", padx=10, pady=10)
 model_listbox.bind("<<ListboxSelect>>", select_model)
 
 search_frame = ctk.CTkFrame(app)
 search_frame.pack(fill="x", padx=10, pady=5)
 
-search_entry = ctk.CTkEntry(search_frame, placeholder_text="enter model name...", font=("Arial", 14))
+search_entry = ctk.CTkEntry(search_frame, placeholder_text="введите название модели для скачивания...",
+                            font=("Arial", 25))
 search_entry.pack(side="left", fill="x", expand=True, padx=5)
 
-install_button = ctk.CTkButton(search_frame, text="install", font=("Arial", 14), command=install_model)
+install_button = ctk.CTkButton(search_frame, text="скачать", font=("Arial", 25), command=install_model)
 install_button.pack(side="right", padx=5)
 
 model_info_frame = ctk.CTkFrame(app)
 model_info_frame.pack(fill="x", padx=10, pady=5)
 
-model_name_label = ctk.CTkLabel(model_info_frame, text="MODEL", font=("Arial", 14))
+model_name_label = ctk.CTkLabel(model_info_frame, text="ИМЯ", font=("Arial", 25))
 model_name_label.pack(side="top", fill="x", padx=5)
 
-model_type_label = ctk.CTkLabel(model_info_frame, text="Тип", font=("Arial", 14))
+model_type_label = ctk.CTkLabel(model_info_frame, text="Тип", font=("Arial", 25))
 model_type_label.pack(side="top", fill="x", padx=5)
 
-model_author_label = ctk.CTkLabel(model_info_frame, text="Автор", font=("Arial", 14))
+model_author_label = ctk.CTkLabel(model_info_frame, text="Автор", font=("Arial", 25))
 model_author_label.pack(side="top", fill="x", padx=5)
 
 prompt_frame = ctk.CTkFrame(app)
 prompt_frame.pack(fill="x", padx=10, pady=5)
 
-prompt_entry = ctk.CTkEntry(prompt_frame, placeholder_text="enter prompt...", font=("Arial", 14))
+prompt_entry = ctk.CTkEntry(prompt_frame, placeholder_text="введите промпт...", font=("Arial", 25))
 prompt_entry.pack(side="left", fill="x", expand=True, padx=5)
 
-send_button = ctk.CTkButton(prompt_frame, text="send", font=("Arial", 14), command=send_prompt)
+send_button = ctk.CTkButton(prompt_frame, text="отправить", font=("Arial", 25), command=send_prompt)
 send_button.pack(side="right", padx=10, pady=5)
 
 params_frame = ctk.CTkFrame(app)
 params_frame.pack(fill="x", padx=10, pady=5)
 
-ctk.CTkLabel(params_frame, text="use advanced mode?", font=("Arial", 14)).grid(row=0, column=0, padx=5, pady=5)
-am_entry = ctk.CTkCheckBox(params_frame, text="enable", font=("Arial", 14), command=toggle_advanced_mode)
+ctk.CTkLabel(params_frame, text="продвинутый режим", font=("Arial", 25)).grid(row=0, column=0, padx=5, pady=5)
+am_entry = ctk.CTkCheckBox(params_frame, text="включить", font=("Arial", 25), command=toggle_advanced_mode)
 am_entry.grid(row=0, column=1, padx=5, pady=5)
 
-temp_label = ctk.CTkLabel(params_frame, text="temperature:", font=("Arial", 14))
-top_k_label = ctk.CTkLabel(params_frame, text="top-k:", font=("Arial", 14))
-top_p_label = ctk.CTkLabel(params_frame, text="top-p:", font=("Arial", 14))
-repetition_penalty_label = ctk.CTkLabel(params_frame, text="repetition penalty:", font=("Arial", 14))
-max_length_label = ctk.CTkLabel(params_frame, text="max length:", font=("Arial", 14))
+temp_label = ctk.CTkLabel(params_frame, text="температура:", font=("Arial", 25))
+top_k_label = ctk.CTkLabel(params_frame, text="top-k:", font=("Arial", 25))
+top_p_label = ctk.CTkLabel(params_frame, text="top-p:", font=("Arial", 25))
+repetition_penalty_label = ctk.CTkLabel(params_frame, text="наказание за повтор:", font=("Arial", 25))
+max_length_label = ctk.CTkLabel(params_frame, text="кол-во токенов:", font=("Arial", 25))
 
-temp_entry = ctk.CTkEntry(params_frame, font=("Arial", 14))
-top_k_entry = ctk.CTkEntry(params_frame, font=("Arial", 14))
-top_p_entry = ctk.CTkEntry(params_frame, font=("Arial", 14))
-repetition_penalty_entry = ctk.CTkEntry(params_frame, font=("Arial", 14))
-max_length_entry = ctk.CTkEntry(params_frame, font=("Arial", 14))
+temp_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
+top_k_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
+top_p_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
+repetition_penalty_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
+max_length_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
 
-output_textbox = ctk.CTkTextbox(app, height=200, font=("Arial", 14))
+output_textbox = ctk.CTkTextbox(app, height=200, font=("Arial", 25))
 output_textbox.pack(fill="both", padx=10, pady=5)
 
-delete_button = ctk.CTkButton(app, text="delete model", font=("Arial", 14), command=delete_selected_model)
+delete_button = ctk.CTkButton(app, text="удалить модель", font=("Arial", 25), command=delete_selected_model,
+                              fg_color="#DB2748", hover_color="#BA2020")
 delete_button.pack(side="bottom", fill="x", padx=10, pady=5)
 
 update_model_list()
