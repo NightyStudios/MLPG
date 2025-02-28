@@ -1,5 +1,7 @@
 customtkinter
 transformers
+markdown2
+tkinterweb
 pillow
 huggingface-hub
 sacremoses

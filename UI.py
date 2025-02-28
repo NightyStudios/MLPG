@@ -1,12 +1,49 @@
 import tkinter as tk
 import customtkinter as ctk
-
+import markdown2
 from list_models import list_models
 from download_model import download_model
 from use_model import use_model
 from del_model import del_model
 import tkinter.messagebox as MessageBox
 from PIL import Image
+from tkinterweb import HtmlFrame
+import os
+
+
+dark_mode_styles = """
+    <style>
+        body {
+            background-color: #1d1d1e;
+            color: #dce4ee;
+            font-family: Arial, sans-serif;
+        }
+        pre, code {
+            background-color: #333333;
+            color: #dce4ee;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #dce4ee;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        a {
+            color: #dce4ee;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+"""
+
 
 
 def show_tutorial():
@@ -24,39 +61,40 @@ def show_tutorial():
         tutorial_window.destroy()
 
     tutorial_window.protocol("WM_DELETE_WINDOW", on_close)
-
     tutorial_steps = [
         {
             "text": "Добро пожаловать в MLPG - песочницу для моделей ИИ! \n В этой инструкции вы узнаете, как пользоваться приложением и использовать ИИ на всю мощь!",
-            "image": "logo.png"},
+            "image": r"src\logo.png"},
         {
             "text": "В верхней поисковой строке вы можете ввести название модели в формате автор/имя и программа скачает её с Hugging Face, например openai-community/gpt2",
-            "image": "download.png"},
-        {"text": "Загруженные модели отображаются в списке слева", "image": "list.png"},
+            "image": r"src\download.png"},
+        {"text": "Загруженные модели отображаются в списке слева",
+         "image": r"src\list.png"},
         {
             "text": "Чтобы использовать модель, выберите её из списка. Ее характеристики (имя, тип и автор) отобразятся на основном экране (1). \n В текстовом поле (2) введите запрос для модели и нажмите на кнопку отправки (3) \n Результат отобразится в поле ниже (4)",
-            "image": "basic.png"},
+            "image": r"src\basic.png"},
         {
             "text": "Для использования продвинутых настроек нужно включить флажок (1) и настроить параметры (2) \n Затем, как в предыдущем пункте, нажать кнопку (3)",
-            "image": "advanced.png"},
+            "image": r"src\advanced.png"},
         {
             "text": "Температура (temperature) —  параметр, который контролирует степень случайности в ответах модели. Низкая температура делает ответы более предсказуемыми и уверенными, в то время как высокая температура увеличивает их вариативность",
-            "image": "temp.png"},
+            "image": r"src\temp.png"},
         {
             "text": "Top-k (первые k) - параметр, который выбирает k первых из списка наиболее вероятных слов. Как и в случае с температурой, top-k увеличивает разнообразие ответов",
-            "image": "top-k.png"},
+            "image": r"src\top-k.png"},
         {
             "text": "Top-p (nucleus sampling, выборка по ядру) смотрит, чтобы сумма вероятностей слов была не более, чем p. Проще говоря, чем больше p, тем больше 'активный словарный запас модели'",
-            "image": "top-p.png"},
+            "image": r"src\top-p.png"},
         {
             "text": "Наказание за повтор (repetition penalty) говорит само за себя - чем больше параметр, тем меньше модель повторяется",
-            "image": "rep.png"},
-        {"text": "Кол-во токенов [максимальное] регулирует насколько длинным будет выход модели", "image": "lengh.png"},
+            "image": r"src\rep.png"},
+        {"text": "Кол-во токенов [максимальное] регулирует насколько длинным будет выход модели",
+         "image": r"src\lengh.png"},
         {
             "text": "В целях оптимизации дискового пространства (или потому что ИИ вас рассердил :), вы можете удалить используемую модель",
-            "image": "del.png"},
+            "image": r"src\del.png"},
         {"text": "Теперь вы знаете, все, что нужно для старта! Желаем успехов и приятного пользования!",
-         "image": "logo.png"},
+         "image": r"src\logo.png"},
     ]
     tutorial_window.tutorial_steps = tutorial_steps
     tutorial_window.current_step = 0
@@ -74,7 +112,7 @@ def show_tutorial():
     button_frame.grid_columnconfigure(1, weight=1)
     button_frame.grid_columnconfigure(2, weight=1)
 
-    tutorial_prev_button = ctk.CTkButton(button_frame, text="<--",
+    tutorial_prev_button = ctk.CTkButton(button_frame, text="←",
                                          command=lambda: tutorial_prev_step(tutorial_window, tutorial_image_label,
                                                                             tutorial_text_label, tutorial_prev_button,
                                                                             tutorial_next_button), state="disabled",
@@ -82,7 +120,7 @@ def show_tutorial():
     tutorial_prev_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
     tutorial_close_button = ctk.CTkButton(button_frame, text="Закрыть", command=on_close, font=('Arial', 30))
     tutorial_close_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-    tutorial_next_button = ctk.CTkButton(button_frame, text="-->",
+    tutorial_next_button = ctk.CTkButton(button_frame, text="→",
                                          command=lambda: tutorial_next_step(tutorial_window, tutorial_image_label,
                                                                             tutorial_text_label, tutorial_prev_button,
                                                                             tutorial_next_button), font=('Arial', 30))
@@ -132,6 +170,17 @@ ctk.set_default_color_theme("blue")
 
 show_tutorial()
 
+def load_readme(model_name):
+    selected = model_listbox.get(model_listbox.curselection())
+    for model in models:
+        if model["model_id"] == selected:
+            readme_path = os.path.join(model.get("path"), "README.md")
+            if os.path.exists(readme_path):
+                with open(readme_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                return content
+            return "README.md не найден."
+
 
 def update_model_list():
     model_listbox.delete(0, "end")
@@ -143,15 +192,28 @@ def update_model_list():
     app.after(1000, update_model_list)
 
 
-def select_model(event  ):
-    selected = model_listbox.get(model_listbox.curselection())
+def select_model(event):
+    try:
+        selected = model_listbox.get(model_listbox.curselection())
+    except tk.TclError:
+        return
+
     for model in models:
         if model["model_id"] == selected:
             author, model_name = model["model_id"].split("/")
             task = model.get("task", "Неизвестно")
+
             model_name_label.configure(text=model_name.upper())
             model_type_label.configure(text=task)
             model_author_label.configure(text=author)
+
+            readme_content = load_readme(model["model_id"])
+
+            if readme_content:
+                readme_content = markdown2.markdown(readme_content, extras=["fenced-code-blocks"]).replace("\n", "\n\n")
+                readme_textbox.load_html(readme_content+dark_mode_styles)
+            else:
+                readme_textbox.load_html("<p>README.md не найден.</p>")
 
 
 def install_model():
@@ -241,6 +303,8 @@ def toggle_advanced_mode():
         max_length_entry.grid_forget()
 
 
+
+
 model_listbox = tk.Listbox(app, width=30, font=("Arial", 25))
 model_listbox.pack(side="left", fill="y", padx=10, pady=10)
 model_listbox.bind("<<ListboxSelect>>", select_model)
@@ -297,6 +361,17 @@ max_length_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
 
 output_textbox = ctk.CTkTextbox(app, height=200, font=("Arial", 25))
 output_textbox.pack(fill="both", padx=10, pady=5)
+
+readme_frame = ctk.CTkFrame(app)
+readme_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+readme_label = ctk.CTkLabel(readme_frame, text="README.md", font=("Arial", 25))
+readme_label.pack(anchor="w", padx=5, pady=5)
+
+readme_textbox = HtmlFrame(readme_frame, horizontal_scrollbar="auto")
+
+
+readme_textbox.pack(fill="both", expand=True, padx=5, pady=5)
 
 delete_button = ctk.CTkButton(app, text="удалить модель", font=("Arial", 25), command=delete_selected_model,
                               fg_color="#DB2748", hover_color="#BA2020")
