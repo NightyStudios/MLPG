@@ -1,4 +1,5 @@
 import os
+import re
 import threading
 import tkinter as tk
 import tkinter.messagebox as MessageBox
@@ -6,19 +7,20 @@ import tkinter.messagebox as MessageBox
 import customtkinter as ctk
 import markdown2
 from PIL import Image
+from bs4 import BeautifulSoup
 from tkinterweb import HtmlFrame
-from transformers import pipeline, T5ForConditionalGeneration, T5Tokenizer, MBartForConditionalGeneration, MBart50TokenizerFast
+from transformers import pipeline, MBartForConditionalGeneration, \
+    MBart50TokenizerFast
 
 from del_model import del_model
 from download_model import download_model
 from list_models import list_models
 from use_model import use_model
 
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+summarizer = pipeline("summarization", model="Falconsai/text_summarization")
 summary_cache = {}
 
 model_name = "TheTEm/mbart-itlang-finetuned"
-
 
 model = MBartForConditionalGeneration.from_pretrained(model_name)
 tokenizer = MBart50TokenizerFast.from_pretrained(model_name)
@@ -29,36 +31,76 @@ tokenizer.src_lang = src_lang
 tokenizer.tgt_lang = tgt_lang
 
 
-def split_text(text, max_chars=1000):
-    return [text[i:i + max_chars] for i in range(0, len(text), max_chars)]
+# def split_text(text, max_chars=5000):
+#     return [text[i:i + max_chars] for i in range(0, len(text), max_chars)]
+
+
+def clean_readme(text):
+    text = re.sub(r'^---.*?---', '', text, flags=re.DOTALL | re.MULTILINE)
+
+    text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
+
+    text = BeautifulSoup(text, "html.parser").get_text()
+
+    text = re.sub(r'!?\[.*?\]\(.*?\)', '', text)
+
+    text = re.sub(r'\*{1,2}(.*?)\*{1,2}', r'\1', text)
+    text = re.sub(r'~{2}(.*?)~{2}', r'\1', text)
+    text = re.sub(r'`[^`]*`', '', text)
+
+    text = re.sub(r'\|.*?\|', '', text)
+
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = text.strip()
+
+    return text
+
+
+def trim_to_first_h2(markdown_text):
+    match = re.search(r'^##\s+.+$', markdown_text, flags=re.MULTILINE)
+
+    if match:
+        return markdown_text[match.start():]
+    return markdown_text
 
 
 def summarize_and_translate(text):
     if text in summary_cache:
         return summary_cache[text]
 
-    max_chars = 1000
+    processed_text = clean_readme(trim_to_first_h2(text))
 
-    if len(text) > max_chars:
-        chunks = split_text(text, max_chars)
-        chunk_summaries = []
-        for chunk in chunks:
-            summary = summarizer(chunk, max_length=18, min_length=1, do_sample=False)[0]['summary_text']
-            chunk_summaries.append(summary)
-        full_summary = " ".join(chunk_summaries)
-    else:
-        full_summary = summarizer(text, max_length=18, min_length=1, do_sample=False)[0]['summary_text']
+    if len(processed_text) < 30:
+        return "Текст слишком короткий для суммаризации"
 
+    try:
 
-    inputs = tokenizer(full_summary, return_tensors="pt", padding=True, truncation=True)
+        summary = summarizer(
+            processed_text[:1024],
+            max_length=150,
+            min_length=30,
+            do_sample=False
+        )[0]['summary_text']
 
+        inputs = tokenizer(
+            summary,
+            return_tensors="pt",
+            max_length=256,
+            truncation=True
+        )
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=256,
+            num_beams=4
+        )
+        translation = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-    generated_tokens = model.generate(inputs["input_ids"], max_length=128)
+        summary_cache[text] = translation
+        return translation
 
-
-    translation = tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
-    summary_cache[text] = translation
-    return translation
+    except Exception as e:
+        print(f"Ошибка: {str(e)}")
+        return "Ошибка обработки текста"
 
 
 def process_summarization_async(text, widget):
@@ -78,6 +120,7 @@ dark_mode_styles = """
             background-color: #1d1d1e;
             color: #dce4ee;
             font-family: Arial, sans-serif;
+            font-size: 30px;
         }
         pre, code {
             background-color: #333333;
@@ -134,16 +177,16 @@ def show_tutorial():
             "text": "Температура (temperature) — параметр, который контролирует степень случайности в ответах модели. Низкая температура делает ответы более предсказуемыми, а высокая – разнообразными",
             "image": r"src\temp.png"},
         {"text": "Top-k (первые k) выбирает k наиболее вероятных слов, увеличивая разнообразие ответов",
-            "image": r"src\top-k.png"}, {
+         "image": r"src\top-k.png"}, {
             "text": "Top-p (nucleus sampling) следит, чтобы сумма вероятностей не превышала p, позволяя модели использовать более широкий словарь",
             "image": r"src\top-p.png"},
         {"text": "Наказание за повтор (repetition penalty) снижает вероятность повторения слов в ответе",
-            "image": r"src\rep.png"},
+         "image": r"src\rep.png"},
         {"text": "Кол-во токенов регулирует максимальную длину вывода модели", "image": r"src\lengh.png"},
         {"text": "Для оптимизации дискового пространства вы можете удалить использованные модели",
-            "image": r"src\del.png"},
+         "image": r"src\del.png"},
         {"text": "Теперь вы знаете все для старта! Желаем успехов и приятного пользования!",
-            "image": r"src\logo.png"}, ]
+         "image": r"src\logo.png"}, ]
     tutorial_window.tutorial_steps = tutorial_steps
     tutorial_window.current_step = 0
 
@@ -161,15 +204,19 @@ def show_tutorial():
     button_frame.grid_columnconfigure(2, weight=1)
 
     tutorial_prev_button = ctk.CTkButton(button_frame, text="←",
-        command=lambda: tutorial_prev_step(tutorial_window, tutorial_image_label, tutorial_text_label,
-                                           tutorial_prev_button, tutorial_next_button), state="disabled",
-        font=('Arial', 30))
+                                         command=lambda: tutorial_prev_step(tutorial_window, tutorial_image_label,
+                                                                            tutorial_text_label,
+                                                                            tutorial_prev_button, tutorial_next_button),
+                                         state="disabled",
+                                         font=('Arial', 30))
     tutorial_prev_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
     tutorial_close_button = ctk.CTkButton(button_frame, text="Закрыть", command=on_close, font=('Arial', 30))
     tutorial_close_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
     tutorial_next_button = ctk.CTkButton(button_frame, text="→",
-        command=lambda: tutorial_next_step(tutorial_window, tutorial_image_label, tutorial_text_label,
-                                           tutorial_prev_button, tutorial_next_button), font=('Arial', 30))
+                                         command=lambda: tutorial_next_step(tutorial_window, tutorial_image_label,
+                                                                            tutorial_text_label,
+                                                                            tutorial_prev_button, tutorial_next_button),
+                                         font=('Arial', 30))
     tutorial_next_button.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
     update_tutorial_step(tutorial_window, tutorial_image_label, tutorial_text_label, tutorial_prev_button,
                          tutorial_next_button)
@@ -214,7 +261,7 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 show_tutorial()
 
-model_listbox = tk.Listbox(app, width=30, font=("Arial", 25))
+model_listbox = tk.Listbox(app, width=30, font=("Arial", 30))
 model_listbox.pack(side="left", fill="y", padx=10, pady=10)
 model_listbox.bind("<<ListboxSelect>>", lambda event: select_model(event))
 
@@ -222,49 +269,49 @@ search_frame = ctk.CTkFrame(app)
 search_frame.pack(fill="x", padx=10, pady=5)
 
 search_entry = ctk.CTkEntry(search_frame, placeholder_text="введите название модели для скачивания...",
-                            font=("Arial", 25))
+                            font=("Arial", 30))
 search_entry.pack(side="left", fill="x", expand=True, padx=5)
-install_button = ctk.CTkButton(search_frame, text="скачать", font=("Arial", 25), command=lambda: install_model())
+install_button = ctk.CTkButton(search_frame, text="скачать", font=("Arial", 30), command=lambda: install_model())
 install_button.pack(side="right", padx=5)
 
 model_info_frame = ctk.CTkFrame(app)
 model_info_frame.pack(fill="x", padx=10, pady=5)
 
-model_name_label = ctk.CTkLabel(model_info_frame, text="ИМЯ", font=("Arial", 25))
+model_name_label = ctk.CTkLabel(model_info_frame, text="ИМЯ", font=("Arial", 30))
 model_name_label.pack(side="top", fill="x", padx=5)
-model_type_label = ctk.CTkLabel(model_info_frame, text="Тип", font=("Arial", 25))
+model_type_label = ctk.CTkLabel(model_info_frame, text="Тип", font=("Arial", 30))
 model_type_label.pack(side="top", fill="x", padx=5)
-model_author_label = ctk.CTkLabel(model_info_frame, text="Автор", font=("Arial", 25))
+model_author_label = ctk.CTkLabel(model_info_frame, text="Автор", font=("Arial", 30))
 model_author_label.pack(side="top", fill="x", padx=5)
 
 prompt_frame = ctk.CTkFrame(app)
 prompt_frame.pack(fill="x", padx=10, pady=5)
 
-prompt_entry = ctk.CTkEntry(prompt_frame, placeholder_text="введите промпт...", font=("Arial", 25))
+prompt_entry = ctk.CTkEntry(prompt_frame, placeholder_text="введите промпт...", font=("Arial", 30))
 prompt_entry.pack(side="left", fill="x", expand=True, padx=5)
-send_button = ctk.CTkButton(prompt_frame, text="отправить", font=("Arial", 25), command=lambda: send_prompt())
+send_button = ctk.CTkButton(prompt_frame, text="отправить", font=("Arial", 30), command=lambda: send_prompt())
 send_button.pack(side="right", padx=10, pady=5)
 
 params_frame = ctk.CTkFrame(app)
 params_frame.pack(fill="x", padx=10, pady=5)
 
-ctk.CTkLabel(params_frame, text="продвинутый режим", font=("Arial", 25)).grid(row=0, column=0, padx=5, pady=5)
-am_entry = ctk.CTkCheckBox(params_frame, text="включить", font=("Arial", 25), command=lambda: toggle_advanced_mode())
+ctk.CTkLabel(params_frame, text="продвинутый режим", font=("Arial", 30)).grid(row=0, column=0, padx=5, pady=5)
+am_entry = ctk.CTkCheckBox(params_frame, text="включить", font=("Arial", 30), command=lambda: toggle_advanced_mode())
 am_entry.grid(row=0, column=1, padx=5, pady=5)
 
-temp_label = ctk.CTkLabel(params_frame, text="температура:", font=("Arial", 25))
-top_k_label = ctk.CTkLabel(params_frame, text="top-k:", font=("Arial", 25))
-top_p_label = ctk.CTkLabel(params_frame, text="top-p:", font=("Arial", 25))
-repetition_penalty_label = ctk.CTkLabel(params_frame, text="наказание за повтор:", font=("Arial", 25))
-max_length_label = ctk.CTkLabel(params_frame, text="кол-во токенов:", font=("Arial", 25))
+temp_label = ctk.CTkLabel(params_frame, text="температура:", font=("Arial", 30))
+top_k_label = ctk.CTkLabel(params_frame, text="top-k:", font=("Arial", 30))
+top_p_label = ctk.CTkLabel(params_frame, text="top-p:", font=("Arial", 30))
+repetition_penalty_label = ctk.CTkLabel(params_frame, text="наказание за повтор:", font=("Arial", 30))
+max_length_label = ctk.CTkLabel(params_frame, text="кол-во токенов:", font=("Arial", 30))
 
-temp_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
-top_k_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
-top_p_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
-repetition_penalty_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
-max_length_entry = ctk.CTkEntry(params_frame, font=("Arial", 25))
+temp_entry = ctk.CTkEntry(params_frame, font=("Arial", 30))
+top_k_entry = ctk.CTkEntry(params_frame, font=("Arial", 30))
+top_p_entry = ctk.CTkEntry(params_frame, font=("Arial", 30))
+repetition_penalty_entry = ctk.CTkEntry(params_frame, font=("Arial", 30))
+max_length_entry = ctk.CTkEntry(params_frame, font=("Arial", 30))
 
-output_textbox = ctk.CTkTextbox(app, height=200, font=("Arial", 25))
+output_textbox = ctk.CTkTextbox(app, height=200, font=("Arial", 30))
 output_textbox.pack(fill="both", padx=10, pady=5)
 
 readme_summary_frame = ctk.CTkFrame(app)
@@ -272,14 +319,14 @@ readme_summary_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
 readme_frame = ctk.CTkFrame(readme_summary_frame)
 readme_frame.grid(row=0, column=0, sticky="nsew", padx=5)
-readme_label = ctk.CTkLabel(readme_frame, text="README.md", font=("Arial", 25))
+readme_label = ctk.CTkLabel(readme_frame, text="README.md", font=("Arial", 30))
 readme_label.pack(anchor="w", padx=5, pady=5)
 readme_textbox = HtmlFrame(readme_frame, horizontal_scrollbar="auto")
 readme_textbox.pack(fill="both", expand=True, padx=5, pady=5)
 
 summary_frame = ctk.CTkFrame(readme_summary_frame)
 summary_frame.grid(row=0, column=1, sticky="nsew", padx=5)
-summary_label = ctk.CTkLabel(summary_frame, text="Кратко о модели", font=("Arial", 25))
+summary_label = ctk.CTkLabel(summary_frame, text="Кратко о модели", font=("Arial", 30))
 summary_label.pack(anchor="w", padx=5, pady=5)
 summary_textbox = HtmlFrame(summary_frame, horizontal_scrollbar="auto")
 summary_textbox.pack(fill="both", expand=True, padx=5, pady=5)
@@ -349,11 +396,11 @@ def send_prompt():
 
     try:
         params = {"temp": float(temp_entry.get()) if temp_entry.get() else 1.0,
-            "topk": int(top_k_entry.get()) if top_k_entry.get() else 50,
-            "topp": float(top_p_entry.get()) if top_p_entry.get() else 1.0,
-            "c_size": int(max_length_entry.get()) if max_length_entry.get() else 512,
-            "rep_penalty": float(repetition_penalty_entry.get()) if repetition_penalty_entry.get() else 1.0,
-            "am": bool(am_entry.get()) if am_entry.get() else False, }
+                  "topk": int(top_k_entry.get()) if top_k_entry.get() else 50,
+                  "topp": float(top_p_entry.get()) if top_p_entry.get() else 1.0,
+                  "c_size": int(max_length_entry.get()) if max_length_entry.get() else 512,
+                  "rep_penalty": float(repetition_penalty_entry.get()) if repetition_penalty_entry.get() else 1.0,
+                  "am": bool(am_entry.get()) if am_entry.get() else False, }
     except ValueError:
         MessageBox.showerror("возникла ошибка!", "пожалуйста, проверь указанные параметры")
         return
@@ -408,7 +455,7 @@ def toggle_advanced_mode():
         max_length_entry.grid_forget()
 
 
-delete_button = ctk.CTkButton(app, text="удалить модель", font=("Arial", 25), command=delete_selected_model,
+delete_button = ctk.CTkButton(app, text="удалить модель", font=("Arial", 30), command=delete_selected_model,
                               fg_color="#DB2748", hover_color="#BA2020")
 delete_button.pack(side="bottom", fill="x", padx=10, pady=5)
 
