@@ -30,3 +30,9 @@ MLPG поставляется в двух видах: настольное пр�
 `mlpg -h`
 * Linux/MacOS
 `mlpg.py -h`
+
+
+// TODO
+// Rewrite on streamlit [?]
+// Add support for image gen
+// Add learning support [?]
